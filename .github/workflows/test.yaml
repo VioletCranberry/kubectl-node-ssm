@@ -1,0 +1,32 @@
+name: Test
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches:
+      - master
+      - main
+
+jobs:
+  test:
+    name: Lint/Test
+    runs-on: "ubuntu-latest"
+    steps:
+
+      - uses: actions/checkout@v3
+        name: Checkout repository
+
+      - uses: actions/setup-go@v3
+        name: Setup go environment
+        with:
+          go-version: '1.19'
+
+      - uses: golangci/golangci-lint-action@v3
+        name: Lint
+        with:
+          version: 'latest'
+
+      - name: Test
+        run: go test -v ./pkg/helpers

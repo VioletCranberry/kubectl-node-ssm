@@ -1,0 +1,42 @@
+name: Release
+
+permissions:
+  contents: write
+  packages: write
+
+on:
+  release:
+    types: 
+      - created
+
+jobs:
+  release:
+    name: release binary
+    runs-on: "ubuntu-latest"
+    strategy:
+      matrix:
+        goos:
+          - linux
+          - darwin
+          - windows
+        goarch:
+          - amd64
+          - arm64
+        exclude:
+          - goos: windows
+            goarch: ""
+    steps:
+
+      - uses: actions/checkout@v3
+        name: Checkout repository
+
+      - uses: wangyoucao577/go-release-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          goversion: "https://go.dev/dl/go1.19.8.linux-amd64.tar.gz"
+          goos: ${{ matrix.goos }}
+          goarch: ${{ matrix.goarch }}
+          binary_name: "kubectl-node_ssm"
+          build_flags: -v
+          extra_files: LICENSE README.md
+          sha256sum: TRUE
