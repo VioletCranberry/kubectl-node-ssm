@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"syscall"
 )
 
 type SSMClient struct {
@@ -17,6 +18,14 @@ func (c *SSMClient) SetCMD(targetId string, params []string) {
 
 	cmdArgs = append(cmdArgs, params...)
 	cmd := exec.Command("aws", cmdArgs...)
+
+	// Put the child processes in the foreground and their own process group to
+	// allow the child process group to capture the Ctrl-C (or SIGINT) signal,
+	// which otherwise would have killed the node-ssm process and its child
+	// processes when they are all in the same process group.
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		Foreground: true,
+	}
 
 	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env,
