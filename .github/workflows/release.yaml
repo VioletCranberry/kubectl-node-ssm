@@ -48,5 +48,8 @@ jobs:
     runs-on: "ubuntu-latest"
     steps:
 
+      - uses: actions/checkout@v3
+        name: Checkout repository
+
       - uses: rajatjindal/krew-release-bot@v0.0.46
         name: Update new version in krew-index
