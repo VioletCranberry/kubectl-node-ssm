@@ -31,6 +31,7 @@ jobs:
         name: Checkout repository
 
       - uses: wangyoucao577/go-release-action@v1
+        name: Release go binaries
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           goversion: "https://go.dev/dl/go1.19.8.linux-amd64.tar.gz"
@@ -40,3 +41,12 @@ jobs:
           build_flags: -v
           extra_files: LICENSE README.md
           sha256sum: TRUE
+      
+  update:
+    needs: release
+    name: update krew-index
+    runs-on: "ubuntu-latest"
+    steps:
+
+      - uses: rajatjindal/krew-release-bot@v0.0.46
+        name: Update new version in krew-index
