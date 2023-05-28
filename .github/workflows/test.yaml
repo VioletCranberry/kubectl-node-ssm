@@ -8,6 +8,8 @@ on:
     types:
       - opened
       - reopened
+      - edited
+      - synchronize
     branches:
       - master
       - main
