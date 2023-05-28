@@ -27,9 +27,10 @@ jobs:
           go-version: '1.19'
 
       - uses: golangci/golangci-lint-action@v3
-        name: Lint
+        name: Run golangci-lint
         with:
           version: 'latest'
-
-      - name: Test
+          args: --timeout=2m --verbose
+          
+      - name: Run GO tests
         run: go test -v ./pkg/helpers
