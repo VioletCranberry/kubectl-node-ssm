@@ -6,13 +6,13 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
-type CmdOpts struct {
+type Opts struct {
 	configFlags *genericclioptions.ConfigFlags
 	genericclioptions.IOStreams
 }
 
-func NewCmdOpts(streams genericclioptions.IOStreams) *CmdOpts {
-	return &CmdOpts{
+func NewCmdOpts(streams genericclioptions.IOStreams) *Opts {
+	return &Opts{
 		configFlags: genericclioptions.NewConfigFlags(true),
 		IOStreams:   streams,
 	}
@@ -31,8 +31,9 @@ func NewSessionCmd(streams genericclioptions.IOStreams) *cobra.Command {
 		Short: "start AWS systems manager session using local AWS CLI and session-manager-plugin",
 		Long:  "start AWS systems manager session using local AWS CLI and session-manager-plugin",
 		Run: func(cmd *cobra.Command, args []string) {
-			opts.ssmConnect(cmd, args)
-		}}
+			opts.ssmConnect()
+		},
+	}
 
 	cmd.PersistentFlags().StringVar(&target, "target", "", "node name (required)")
 	// nolint: errcheck
@@ -43,26 +44,21 @@ func NewSessionCmd(streams genericclioptions.IOStreams) *cobra.Command {
 	return cmd
 }
 
-func (opts *CmdOpts) ssmConnect(cmd *cobra.Command, args []string) {
+func (opts *Opts) ssmConnect() {
+	ssmClient := helpers.SSMClient{}
+
 	config, _ := opts.configFlags.ToRESTConfig()
+	kubeConfig := helpers.NewKubeConfig(config)
 
-	kubeConfig := helpers.KubeConfig{Config: config}
-	kubeConfig.SetProfile()
-	kubeConfig.SetRegion()
+	awsClient := helpers.NewAWSClient(
+		kubeConfig.AwsProfile,
+		kubeConfig.AwsRegion,
+	)
 
-	awsClient := helpers.AWSClient{
-		AWSProfile: kubeConfig.AWSProfile,
-		AWSRegion:  kubeConfig.AWSRegion,
-	}
-	awsClient.SetClient()
 	instanceData := awsClient.GetInstanceData(target)
 	instanceId := helpers.ParseInstanceData(instanceData)
 
-	ssmClient := helpers.SSMClient{
-		AWSProfile: kubeConfig.AWSProfile,
-		AWSRegion:  kubeConfig.AWSRegion,
-	}
 	ssmClient.SetCMD(instanceId, params)
+	ssmClient.SetEnv(kubeConfig.AwsProfile, kubeConfig.AwsRegion)
 	ssmClient.RunCMD()
-
 }

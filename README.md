@@ -52,23 +52,18 @@ Flags:
 
 ### Requirements:
 
-1. [`AWS CLI installed`](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html)
-2. [`AWS session-manager-plugin installed`](https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-install-plugin.html)
-3. [`AWS Systems Manager Session Manager configured`](https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-getting-started.html)
+1. [AWS CLI installed](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html)
+2. [AWS session-manager-plugin installed](https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-install-plugin.html)
+3. [AWS Systems Manager Session Manager configured](https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-getting-started.html)
 4. IAM Permissions to perform `ec2:DescribeInstances`
 
 ### Logic:
 
-1. Return [`kubeconfig`](https://docs.aws.amazon.com/eks/latest/userguide/create-kubeconfig.html) REST client from current context
-2. Parse [`Config.Host`](https://pkg.go.dev/k8s.io/client-go@v0.26.3/rest#Config.Host) for `AWS_REGION`
-3. Parse [`[]ExecEnvVar`](https://pkg.go.dev/k8s.io/client-go/tools/clientcmd/api#ExecConfig.Env) for `AWS_PROFILE`
-4. Resolve EKS node `private-dns-name` to instance ID using [`AWS describe-instances`](https://pkg.go.dev/github.com/aws/aws-sdk-go@v1.44.239/service/ec2#EC2.DescribeInstances)
-5. Build `aws ssm start-session --target <instance id>` [command](https://pkg.go.dev/os/exec#Command) with specified parameters
-6. Specify environment of the command with `AWS_REGION` and `AWS_PROFILE` variables
-7. Start the command and wait for it to complete
-
-### Notes:
-
-Most likely `aws eks update-kubeconfig --region region-code --name my-cluster` should include `--profile`
-to have `AWS_PROFILE` variable exposed in cluster environment variables of `kubeconfig` file. I did not test it out since `--profile` was always present when I was creating or updating `kubeconfig` file for our clusters.
-
+1. Return [kubeconfig](https://docs.aws.amazon.com/eks/latest/userguide/create-kubeconfig.html) REST client from current context.
+2. Parse [Config.Host](https://pkg.go.dev/k8s.io/client-go@v0.26.3/rest#Config.Host) for `AWS_REGION`.
+3. Parse [[]ExecEnvVar](https://pkg.go.dev/k8s.io/client-go/tools/clientcmd/api#ExecConfig.Env) for `AWS_PROFILE`.  
+If `AWS_PROFILE` was not found we assume [AWS session](https://pkg.go.dev/github.com/aws/aws-sdk-go/aws/session) is to be created with a Shared Configuration file. 
+4. Resolve EKS node `private-dns-name` to instance ID using [AWS describe-instances](https://pkg.go.dev/github.com/aws/aws-sdk-go@v1.44.239/service/ec2#EC2.DescribeInstances).
+5. Build `aws ssm start-session --target <instance id>` [command](https://pkg.go.dev/os/exec#Command) with specified parameters.
+6. Specify environment of the command with `AWS_REGION` and optional `AWS_PROFILE` variables.
+7. Start the command and wait for it to complete.
