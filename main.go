@@ -17,13 +17,16 @@ func main() {
 		flags := pflag.NewFlagSet("kubectl-node-ssm", pflag.ExitOnError)
 		pflag.CommandLine = flags
 
-		root := cmd.NewSessionCmd(genericclioptions.IOStreams{
+		sessionCmd := cmd.NewSessionCmd(genericclioptions.IOStreams{
 			In:     os.Stdin,
 			Out:    os.Stdout,
 			ErrOut: os.Stderr,
 		})
-		// nolint: errcheck
-		root.Execute()
+		err := sessionCmd.Execute()
+		if err != nil {
+			errmsg := errors.New("was unable to execute cobra session cmd")
+			panic(errmsg)
+		}
 	} else {
 		errmsg := errors.New("was not invoked as kubectl plugin")
 		panic(errmsg)

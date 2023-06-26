@@ -1,12 +1,14 @@
 package helpers
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
+	"reflect"
 	"testing"
 )
 
-func Test_SetCmdArgs(t *testing.T) {
+func Test_setCMD(t *testing.T) {
 	type testCases struct {
 		args       []string
 		params     []string
@@ -37,41 +39,50 @@ func Test_SetCmdArgs(t *testing.T) {
 	}
 }
 
-func Test_SetCmdEnv(t *testing.T) {
+func Test_setEnv(t *testing.T) {
 	type testCases struct {
 		awsProfile string
 		awsRegion  string
-		env        []string
 		instanceId string
+
+		expectedEnv []string
 	}
+
+	region := "test-aws-region"
+	profile := "test-aws-profile"
+
 	for _, scenario := range []testCases{
 		{
-			awsProfile: "test-aws-profile",
-			awsRegion:  "us-east-1",
-			env:        os.Environ(),
 			instanceId: "test-instance-id",
+			awsProfile: profile,
+			awsRegion:  region,
+			expectedEnv: append(os.Environ(),
+				fmt.Sprintf("AWS_REGION=%s", region),
+				fmt.Sprintf("AWS_PROFILE=%s", profile),
+			),
 		},
 		{
-			env:        os.Environ(),
 			instanceId: "test-instance-id",
+			awsProfile: "",
+			awsRegion:  region,
+			expectedEnv: append(os.Environ(),
+				fmt.Sprintf("AWS_REGION=%s", region),
+			),
 		},
 	} {
-		expectedEnv := append(scenario.env, scenario.awsProfile, scenario.awsRegion)
 
-		ssmClient := SSMClient{
-			AWSProfile: scenario.awsProfile,
-			AWSRegion:  scenario.awsRegion,
-		}
+		ssmClient := SSMClient{}
 		ssmClient.SetCMD(scenario.instanceId, []string{})
+		ssmClient.SetEnv(scenario.awsProfile, scenario.awsRegion)
 
-		if len(expectedEnv) != len(ssmClient.CMD.Env) {
+		if !reflect.DeepEqual(scenario.expectedEnv, ssmClient.CMD.Env) {
 			t.Errorf("set invalid CMD env: expected %s / got %s",
-				expectedEnv, ssmClient.CMD.Env)
+				scenario.expectedEnv, ssmClient.CMD.Env)
 		}
 	}
 }
 
-func TestRunCMDPanic(t *testing.T) {
+func Test_runCMDPanic(t *testing.T) {
 	testSSMClient := SSMClient{
 		CMD: &exec.Cmd{
 			Args: []string{"false"},

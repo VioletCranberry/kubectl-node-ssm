@@ -7,13 +7,12 @@ import (
 	"os"
 	"os/exec"
 
+	"github.com/VioletCranberry/kubectl-node-ssm/pkg/utils"
 	"golang.org/x/sys/unix"
 )
 
 type SSMClient struct {
-	AWSProfile string
-	AWSRegion  string
-	CMD        *exec.Cmd
+	CMD *exec.Cmd
 }
 
 func (c *SSMClient) SetCMD(targetId string, params []string) {
@@ -30,17 +29,22 @@ func (c *SSMClient) SetCMD(targetId string, params []string) {
 	cmd.SysProcAttr = &unix.SysProcAttr{
 		Foreground: true,
 	}
-
-	cmd.Env = os.Environ()
-	cmd.Env = append(cmd.Env,
-		fmt.Sprintf("AWS_PROFILE=%s", c.AWSProfile),
-		fmt.Sprintf("AWS_REGION=%s", c.AWSRegion),
-	)
 	c.CMD = cmd
 }
 
-func (c *SSMClient) RunCMD() {
+func (c *SSMClient) SetEnv(awsProfile, awsRegion string) {
+	c.CMD.Env = os.Environ()
+	// aws region is always defined at this stage
+	c.CMD.Env = append(c.CMD.Env, fmt.Sprintf("AWS_REGION=%s", awsRegion))
 
+	if !utils.ContainsEmpty(awsProfile) {
+		c.CMD.Env = append(c.CMD.Env,
+			fmt.Sprintf("AWS_PROFILE=%s", awsProfile),
+		)
+	}
+}
+
+func (c *SSMClient) RunCMD() {
 	c.CMD.Stdin = os.Stdin
 	c.CMD.Stdout = os.Stdout
 	c.CMD.Stderr = os.Stderr
