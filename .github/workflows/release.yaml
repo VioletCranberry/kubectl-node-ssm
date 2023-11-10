@@ -1,54 +1,40 @@
 ---
 name: Release
-
 permissions:
   contents: write
   packages: write
-
 on:
   release:
     types:
       - published
-
 jobs:
+
   release:
-    name: release binary
+    name: release binaries
     runs-on: "ubuntu-latest"
-    strategy:
-      matrix:
-        goos:
-          - linux
-          - darwin
-          - windows
-        goarch:
-          - amd64
-          - arm64
-        exclude:
-          - goos: windows
-            goarch: ""
     steps:
-      - uses: actions/checkout@v3
-        name: Checkout repository
 
-      - uses: wangyoucao577/go-release-action@v1
-        name: Release go binaries
+      - uses: actions/checkout@v4
+        name: Checkout repository
+      - uses: actions/setup-go@v4
+        name: Setup go environment
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          goversion: "https://go.dev/dl/go1.19.8.linux-amd64.tar.gz"
-          goos: ${{ matrix.goos }}
-          goarch: ${{ matrix.goarch }}
-          binary_name: "kubectl-node_ssm"
-          build_flags: -v
-          extra_files: LICENSE README.md
-          sha256sum: TRUE
+          go-version: "1.20"
+      - name: Install GoReleaser
+        run: |
+          curl -sfL https://goreleaser.com/static/run | bash
 
-  update:
-    needs: release
-    name: update krew-index
-    runs-on: "ubuntu-latest"
-    steps:
-      - uses: actions/checkout@v3
-        name: Checkout repository
-
-      - uses: rajatjindal/krew-release-bot@v0.0.46
-        name: Update new version in krew-index
+      - name: Build libraries
+        run: |
+          ./build.sh
+      - name: Upload release assets
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          LATEST_RELEASE_TAG: ${{ env.LATEST_RELEASE_TAG }}
+        run: |
+          gh release upload "$LATEST_RELEASE_TAG" \
+          ./dist/kubectl-node_ssm-"$LATEST_RELEASE_TAG"-*.tar.gz
+          gh release upload "$LATEST_RELEASE_TAG" \
+          ./dist/kubectl-node_ssm-"$LATEST_RELEASE_TAG"-*.zip
+          gh release upload "$LATEST_RELEASE_TAG" \
+          ./dist/kubectl-node_ssm-"$LATEST_RELEASE_TAG"-*.sha256
