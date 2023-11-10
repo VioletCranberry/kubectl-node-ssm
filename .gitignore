@@ -1,3 +1,4 @@
-kubectl-node_ssm
 .DS_Store
 .idea
+dist/
+kubectl-node_ssm

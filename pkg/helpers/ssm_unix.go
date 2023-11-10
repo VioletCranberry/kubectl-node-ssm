@@ -7,51 +7,51 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/VioletCranberry/kubectl-node-ssm/pkg/utils"
 	"golang.org/x/sys/unix"
 )
 
 type SSMClient struct {
-	CMD *exec.Cmd
+	Cmd *exec.Cmd
 }
 
-func (c *SSMClient) SetCMD(targetId string, params []string) {
-	cmdArgs := []string{"ssm", "start-session", "--target", targetId}
+func NewSSMClient(targetId string, params []string,
+	awsProfile, awsRegion string) (*SSMClient, error) {
+	client := &SSMClient{}
+	cmd, err := client.buildCMD(targetId, params)
+	if err != nil {
+		return nil, fmt.Errorf("error building command: %w", err)
+	}
 
-	cmdArgs = append(cmdArgs, params...)
+	client.Cmd = cmd
+	client.setEnv(awsProfile, awsRegion)
+
+	return client, nil
+}
+
+func (c *SSMClient) buildCMD(targetId string, params []string) (*exec.Cmd, error) {
+	cmdArgs := append([]string{"ssm", "start-session", "--target", targetId}, params...)
 	cmd := exec.Command("aws", cmdArgs...)
 
-	// Put the child processes in the foreground and their own process group to
-	// allow the child process group to capture the Ctrl-C (or SIGINT) signal,
-	// which otherwise would have killed the node-ssm process and its child
-	// processes when they are all in the same process group.
-
-	cmd.SysProcAttr = &unix.SysProcAttr{
-		Foreground: true,
-	}
-	c.CMD = cmd
+	cmd.SysProcAttr = &unix.SysProcAttr{Foreground: true}
+	return cmd, nil
 }
 
-func (c *SSMClient) SetEnv(awsProfile, awsRegion string) {
-	c.CMD.Env = os.Environ()
-	// aws region is always defined at this stage
-	c.CMD.Env = append(c.CMD.Env, fmt.Sprintf("AWS_REGION=%s", awsRegion))
-
-	if !utils.ContainsEmpty(awsProfile) {
-		c.CMD.Env = append(c.CMD.Env,
-			fmt.Sprintf("AWS_PROFILE=%s", awsProfile),
-		)
+func (c *SSMClient) setEnv(awsProfile, awsRegion string) {
+	env := os.Environ()
+	env = append(env, fmt.Sprintf("AWS_REGION=%s", awsRegion))
+	if awsProfile != "" {
+		env = append(env, fmt.Sprintf("AWS_PROFILE=%s", awsProfile))
 	}
+	c.Cmd.Env = env
 }
 
-func (c *SSMClient) RunCMD() {
-	c.CMD.Stdin = os.Stdin
-	c.CMD.Stdout = os.Stdout
-	c.CMD.Stderr = os.Stderr
+func (c *SSMClient) RunCMD() error {
+	c.Cmd.Stdin = os.Stdin
+	c.Cmd.Stdout = os.Stdout
+	c.Cmd.Stderr = os.Stderr
 
-	err := c.CMD.Run()
-	if err != nil {
-		errmsg := fmt.Errorf("can't run local command: %s ", err)
-		panic(errmsg)
+	if err := c.Cmd.Run(); err != nil {
+		return fmt.Errorf("error running command: %w", err)
 	}
+	return nil
 }

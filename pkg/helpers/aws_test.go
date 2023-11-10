@@ -1,114 +1,105 @@
 package helpers
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
-type mockEC2Client struct {
+type MockEC2Client struct {
 	ec2iface.EC2API
-	Res ec2.DescribeInstancesOutput
+	mock.Mock
 }
 
-func (m mockEC2Client) DescribeInstances(*ec2.DescribeInstancesInput) (*ec2.DescribeInstancesOutput, error) {
-	return &m.Res, nil
+func (m *MockEC2Client) DescribeInstances(input *ec2.DescribeInstancesInput) (*ec2.DescribeInstancesOutput, error) {
+	args := m.Called(input)
+	return args.Get(0).(*ec2.DescribeInstancesOutput), args.Error(1)
 }
 
-func Test_GetInstanceData(t *testing.T) {
-	type testCases struct {
-		res            ec2.DescribeInstancesOutput
-		privateDnsName string
-	}
-	for _, scenario := range []testCases{
-		{
-			res: ec2.DescribeInstancesOutput{
-				Reservations: []*ec2.Reservation{
+func TestNewAWSClient(t *testing.T) {
+	client, err := NewAWSClient("", "us-west-2")
+	assert.NoError(t, err)
+	assert.NotNil(t, client)
+}
+
+func TestGetInstanceData(t *testing.T) {
+	mockEc2 := new(MockEC2Client)
+	testClient := &AWSClient{Client: mockEc2}
+
+	dnsName := "ip-10-0-0-1.ec2.internal"
+	expectedOutput := &ec2.DescribeInstancesOutput{
+		Reservations: []*ec2.Reservation{
+			{
+				Instances: []*ec2.Instance{
 					{
-						Instances: []*ec2.Instance{
-							{
-								InstanceId:     aws.String("test-instance-id"),
-								PrivateDnsName: aws.String("test-private-dns-test"),
-								State: &ec2.InstanceState{
-									Name: aws.String("running"),
-								},
-							},
+						InstanceId:     aws.String("i-1234567890abcdef0"),
+						PrivateDnsName: aws.String(dnsName),
+						State: &ec2.InstanceState{
+							Name: aws.String("running"),
 						},
 					},
 				},
 			},
-			privateDnsName: "test-private-dns-test",
 		},
-	} {
-		testAwsClient := AWSClient{
-			Client: mockEC2Client{Res: scenario.res},
-		}
-		instanceData := testAwsClient.GetInstanceData(scenario.privateDnsName)
-		for _, reservation := range instanceData.Reservations {
-			for _, instance := range reservation.Instances {
-				if scenario.privateDnsName != *instance.PrivateDnsName {
-					t.Errorf("got invalid instance data: expected %s / got %s",
-						scenario.privateDnsName, *instance.PrivateDnsName)
-				}
-			}
-		}
 	}
+
+	mockEc2.On("DescribeInstances", mock.Anything).Return(expectedOutput, nil)
+
+	output, err := testClient.GetInstanceData(dnsName)
+
+	mockEc2.AssertExpectations(t)
+	assert.NoError(t, err)
+	assert.Equal(t, expectedOutput, output)
 }
 
-func Test_ParseInstanceData(t *testing.T) {
-	type testCases struct {
-		res        ec2.DescribeInstancesOutput
-		instanceId string
-	}
-	for _, scenario := range []testCases{
-		{
-			res: ec2.DescribeInstancesOutput{
-				Reservations: []*ec2.Reservation{
+func TestGetInstanceDataWithError(t *testing.T) {
+	mockEc2 := new(MockEC2Client)
+	testClient := &AWSClient{Client: mockEc2}
+
+	dnsName := "nonexistent.ec2.internal"
+	mockEc2.On("DescribeInstances", mock.Anything).Return((*ec2.DescribeInstancesOutput)(nil), errors.New("instance not found"))
+
+	_, err := testClient.GetInstanceData(dnsName)
+
+	mockEc2.AssertExpectations(t)
+	assert.Error(t, err)
+}
+
+func TestParseInstanceData(t *testing.T) {
+	instanceID := "i-1234567890abcdef0"
+	input := &ec2.DescribeInstancesOutput{
+		Reservations: []*ec2.Reservation{
+			{
+				Instances: []*ec2.Instance{
 					{
-						Instances: []*ec2.Instance{
-							{
-								InstanceId:     aws.String("test-instance-id"),
-								PrivateDnsName: aws.String("test-private-dns"),
-								State: &ec2.InstanceState{
-									Name: aws.String("running"),
-								},
-							},
+						InstanceId:     aws.String("i-1234567890abcdef0"),
+						PrivateDnsName: aws.String("ip-10-0-0-1.ec2.internal"),
+						State: &ec2.InstanceState{
+							Name: aws.String("running"),
 						},
 					},
 				},
 			},
-			instanceId: "test-instance-id",
-		},
-	} {
-		instanceId := ParseInstanceData(&scenario.res)
-		if instanceId != scenario.instanceId {
-			t.Errorf("parsed invalid instance data: expected %s / got %s",
-				scenario.instanceId, instanceId)
-		}
-	}
-}
-
-func Test_GetInstanceDataPanic(t *testing.T) {
-	testAwsClient := AWSClient{
-		Client: mockEC2Client{
-			Res: ec2.DescribeInstancesOutput{},
 		},
 	}
-	defer func() {
-		if r := recover(); r == nil {
-			t.Errorf("the code did not panic")
-		}
-	}()
-	testAwsClient.GetInstanceData("test")
+
+	id, err := ParseInstanceData(input)
+
+	assert.NoError(t, err)
+	assert.Equal(t, instanceID, id)
 }
 
-func Test_ParseInstanceDataPanic(t *testing.T) {
-	defer func() {
-		if r := recover(); r == nil {
-			t.Errorf("the code did not panic")
-		}
-	}()
-	ParseInstanceData(&ec2.DescribeInstancesOutput{})
+func TestParseInstanceDataWithNoInstances(t *testing.T) {
+	input := &ec2.DescribeInstancesOutput{
+		Reservations: []*ec2.Reservation{},
+	}
+
+	_, err := ParseInstanceData(input)
+
+	assert.Error(t, err)
 }
