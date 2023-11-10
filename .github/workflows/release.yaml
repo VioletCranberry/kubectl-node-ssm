@@ -45,3 +45,14 @@ jobs:
           gh release upload ${{ env.LATEST_RELEASE_TAG }} ./dist/kubectl-node_ssm-${{ env.LATEST_RELEASE_TAG }}-*.tar.gz
           gh release upload ${{ env.LATEST_RELEASE_TAG }} ./dist/kubectl-node_ssm-${{ env.LATEST_RELEASE_TAG }}-*.zip
           gh release upload ${{ env.LATEST_RELEASE_TAG }} ./dist/kubectl-node_ssm-${{ env.LATEST_RELEASE_TAG }}-*.sha256
+
+  publish:
+    needs: release
+    name: bump krew-index version
+    runs-on: "ubuntu-latest"
+    steps:
+
+      - uses: actions/checkout@v4
+        name: Checkout repository
+      - uses: rajatjindal/krew-release-bot@v0.0.46
+        name: Publish new version in krew-index
