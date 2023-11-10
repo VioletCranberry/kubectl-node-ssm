@@ -28,14 +28,20 @@ jobs:
       - name: Build libraries
         run: |
           ./build.sh
+
+      - name: Get latest release tag
+        run: |
+          repo_user=$(echo ${{ github.repository }} | cut -d'/' -f1 | tr '[:upper:]' '[:lower:]')
+          repo_name=$(echo ${{ github.repository }} | cut -d'/' -f2 | tr '[:upper:]' '[:lower:]')
+          release_url="https://api.github.com/repos/$repo_user/$repo_name/releases/latest"
+          release_tag=$(curl -sH "Authorization: token ${{ secrets.GITHUB_TOKEN }}" "$release_url" | jq -r ".tag_name")
+          if [[ -z "$release_tag" ]]; then echo "variable release_tag is empty!" && exit 1; fi
+          echo "LATEST_RELEASE_TAG=$release_tag" >> $GITHUB_ENV
+      
       - name: Upload release assets
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          LATEST_RELEASE_TAG: ${{ env.LATEST_RELEASE_TAG }}
         run: |
-          gh release upload "$LATEST_RELEASE_TAG" \
-          ./dist/kubectl-node_ssm-"$LATEST_RELEASE_TAG"-*.tar.gz
-          gh release upload "$LATEST_RELEASE_TAG" \
-          ./dist/kubectl-node_ssm-"$LATEST_RELEASE_TAG"-*.zip
-          gh release upload "$LATEST_RELEASE_TAG" \
-          ./dist/kubectl-node_ssm-"$LATEST_RELEASE_TAG"-*.sha256
+          gh release upload ${{ env.LATEST_RELEASE_TAG }} ./dist/kubectl-node_ssm-${{ env.LATEST_RELEASE_TAG }}-*.tar.gz
+          gh release upload ${{ env.LATEST_RELEASE_TAG }} ./dist/kubectl-node_ssm-${{ env.LATEST_RELEASE_TAG }}-*.zip
+          gh release upload ${{ env.LATEST_RELEASE_TAG }} ./dist/kubectl-node_ssm-${{ env.LATEST_RELEASE_TAG }}-*.sha256
