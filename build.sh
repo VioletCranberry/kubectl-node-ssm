@@ -10,7 +10,7 @@ elif command -v sha256sum >/dev/null 2>&1; then
     checksum_command="sha256sum"
 fi
 
-goreleaser release --timeout=1m --auto-snapshot --fail-fast --clean --skip=publish
+goreleaser release --timeout=10m --auto-snapshot --fail-fast --clean --skip=publish
 cd dist || exit 1
 
 for archive in *.tar.gz *.zip; do
