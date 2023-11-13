@@ -7,7 +7,7 @@ import (
 
 var mockExecCommand func(name string, arg ...string) *exec.Cmd
 
-func TestNewSSMClient(t *testing.T) {
+func TestNewSsmClient(t *testing.T) {
 	mockExecCommand = func(name string, arg ...string) *exec.Cmd {
 		return &exec.Cmd{}
 	}
@@ -18,7 +18,7 @@ func TestNewSSMClient(t *testing.T) {
 	awsProfile := "test-profile"
 	awsRegion := "test-region"
 
-	client, err := NewSSMClient(targetID, params, awsProfile, awsRegion)
+	client, err := NewSsmClient(targetID, params, awsProfile, awsRegion)
 	if err != nil {
 		t.Fatalf("NewSSMClient() error = %v, wantErr %v", err, nil)
 	}

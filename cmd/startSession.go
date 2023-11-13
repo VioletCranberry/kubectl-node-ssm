@@ -18,11 +18,11 @@ func newStartSessionCmd(opts *cliOptions, target *string, params *[]string) *cob
 			if err != nil {
 				return fmt.Errorf("error reading kubeconfig file: %w", err)
 			}
-			instanceId, err := resolveTargetToId(kubeConfig.AwsProfile, kubeConfig.AwsRegion, *target)
+			instanceID, err := resolveTargetToID(kubeConfig.AwsProfile, kubeConfig.AwsRegion, *target)
 			if err != nil {
 				return fmt.Errorf("error resolving target node name to instance ID: %w", err)
 			}
-			err = newSSMsession(kubeConfig.AwsProfile, kubeConfig.AwsRegion, instanceId, *params)
+			err = newSsmSession(kubeConfig.AwsProfile, kubeConfig.AwsRegion, instanceID, *params)
 			if err != nil {
 				return fmt.Errorf("error starting new SSM session: %w", err)
 			}
@@ -45,8 +45,8 @@ func readKubeConfig(opts *cliOptions) (*helpers.KubeConfig, error) {
 	return kubeConfig, nil
 }
 
-func resolveTargetToId(awsProfile, awsRegion, target string) (string, error) {
-	client, err := helpers.NewAWSClient(awsProfile, awsRegion)
+func resolveTargetToID(awsProfile, awsRegion, target string) (string, error) {
+	client, err := helpers.NewAwsClient(awsProfile, awsRegion)
 	if err != nil {
 		return "", fmt.Errorf("error setting up AWS client: %w", err)
 	}
@@ -54,19 +54,19 @@ func resolveTargetToId(awsProfile, awsRegion, target string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("error getting instance data for target %s: %w", target, err)
 	}
-	instanceId, err := helpers.ParseInstanceData(instanceData)
+	instanceID, err := helpers.ParseInstanceData(instanceData)
 	if err != nil {
 		return "", fmt.Errorf("error parsing instance data for target %s: %w", target, err)
 	}
-	return instanceId, nil
+	return instanceID, nil
 }
 
-func newSSMsession(awsProfile, awsRegion, instanceId string, params []string) error {
-	client, err := helpers.NewSSMClient(instanceId, params, awsProfile, awsRegion)
+func newSsmSession(awsProfile, awsRegion, instanceID string, params []string) error {
+	client, err := helpers.NewSsmClient(instanceID, params, awsProfile, awsRegion)
 	if err != nil {
 		return fmt.Errorf("error setting up SSM client: %w", err)
 	}
-	err = client.RunCMD()
+	err = client.RunCmd()
 	if err != nil {
 		return fmt.Errorf("error running SSM session command: %w", err)
 	}

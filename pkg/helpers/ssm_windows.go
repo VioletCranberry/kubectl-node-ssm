@@ -10,13 +10,14 @@ import (
 	"golang.org/x/sys/windows"
 )
 
-type SSMClient struct {
+type SsmClient struct {
 	Cmd *exec.Cmd
 }
 
-func NewSSMClient(targetId string, params []string, awsProfile, awsRegion string) (*SSMClient, error) {
-	client := &SSMClient{}
-	cmd, err := client.buildCMD(targetId, params)
+func NewSsmClient(targetID string, params []string,
+	awsProfile, awsRegion string) (*SsmClient, error) {
+	client := &SsmClient{}
+	cmd, err := client.buildCmd(targetID, params)
 	if err != nil {
 		return nil, fmt.Errorf("error building command: %w", err)
 	}
@@ -27,8 +28,8 @@ func NewSSMClient(targetId string, params []string, awsProfile, awsRegion string
 	return client, nil
 }
 
-func (c *SSMClient) buildCMD(targetId string, params []string) (*exec.Cmd, error) {
-	cmdArgs := append([]string{"ssm", "start-session", "--target", targetId}, params...)
+func (c *SsmClient) buildCmd(targetID string, params []string) (*exec.Cmd, error) {
+	cmdArgs := append([]string{"ssm", "start-session", "--target", targetID}, params...)
 	cmd := exec.Command("aws", cmdArgs...)
 
 	cmd.SysProcAttr = &windows.SysProcAttr{
@@ -38,7 +39,7 @@ func (c *SSMClient) buildCMD(targetId string, params []string) (*exec.Cmd, error
 	return cmd, nil
 }
 
-func (c *SSMClient) setEnv(awsProfile, awsRegion string) {
+func (c *SsmClient) setEnv(awsProfile, awsRegion string) {
 	env := os.Environ()
 	env = append(env, fmt.Sprintf("AWS_REGION=%s", awsRegion))
 	if awsProfile != "" {
@@ -47,7 +48,7 @@ func (c *SSMClient) setEnv(awsProfile, awsRegion string) {
 	c.Cmd.Env = env
 }
 
-func (c *SSMClient) RunCMD() error {
+func (c *SsmClient) RunCmd() error {
 	c.Cmd.Stdin = os.Stdin
 	c.Cmd.Stdout = os.Stdout
 	c.Cmd.Stderr = os.Stderr

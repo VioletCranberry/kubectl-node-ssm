@@ -10,22 +10,22 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2/ec2iface"
 )
 
-type AWSClient struct {
+type AwsClient struct {
 	Client ec2iface.EC2API
 }
 
-func NewAWSClient(awsProfile, awsRegion string) (*AWSClient, error) {
-	sess, err := createAWSSession(awsProfile, awsRegion)
+func NewAwsClient(awsProfile, awsRegion string) (*AwsClient, error) {
+	sess, err := createAwsSession(awsProfile, awsRegion)
 	if err != nil {
 		return nil, err
 	}
 
-	return &AWSClient{
+	return &AwsClient{
 		Client: ec2.New(sess),
 	}, nil
 }
 
-func createAWSSession(awsProfile, awsRegion string) (*session.Session, error) {
+func createAwsSession(awsProfile, awsRegion string) (*session.Session, error) {
 	var opts session.Options
 
 	if awsProfile == "" {
@@ -47,12 +47,12 @@ func createAWSSession(awsProfile, awsRegion string) (*session.Session, error) {
 	return session.NewSessionWithOptions(opts)
 }
 
-func (c *AWSClient) GetInstanceData(privateDnsName string) (*ec2.DescribeInstancesOutput, error) {
+func (c *AwsClient) GetInstanceData(privateDNSName string) (*ec2.DescribeInstancesOutput, error) {
 	res, err := c.Client.DescribeInstances(&ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
 			{
 				Name:   aws.String("private-dns-name"),
-				Values: []*string{aws.String(privateDnsName)},
+				Values: []*string{aws.String(privateDNSName)},
 			},
 			{
 				Name:   aws.String("instance-state-name"),
@@ -64,7 +64,7 @@ func (c *AWSClient) GetInstanceData(privateDnsName string) (*ec2.DescribeInstanc
 		return nil, fmt.Errorf("error describing instances: %w", err)
 	}
 	if res.Reservations == nil || len(res.Reservations) == 0 {
-		return nil, fmt.Errorf("no instance data found for %s", privateDnsName)
+		return nil, fmt.Errorf("no instance data found for %s", privateDNSName)
 	}
 	return res, nil
 }
