@@ -26,6 +26,10 @@ jobs:
         name: Setup go environment
         with:
           go-version: "1.20"
+      - name: Install GoReleaser
+        uses: goreleaser/goreleaser-action@v5
+        with:
+          install-only: true
 
       - name: Run tests
         run: go test -v ./...
@@ -33,4 +37,7 @@ jobs:
         name: Run golangci-lint
         with:
           version: "latest"
-          args: --timeout=2m --verbose
+          args: --enable revive --timeout=2m --verbose
+      - name: Build libraries
+        run: |
+          ./build.sh --snapshot

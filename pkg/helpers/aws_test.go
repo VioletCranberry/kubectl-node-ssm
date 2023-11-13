@@ -21,15 +21,15 @@ func (m *MockEC2Client) DescribeInstances(input *ec2.DescribeInstancesInput) (*e
 	return args.Get(0).(*ec2.DescribeInstancesOutput), args.Error(1)
 }
 
-func TestNewAWSClient(t *testing.T) {
-	client, err := NewAWSClient("", "us-west-2")
+func TestNewAwsClient(t *testing.T) {
+	client, err := NewAwsClient("", "us-west-2")
 	assert.NoError(t, err)
 	assert.NotNil(t, client)
 }
 
 func TestGetInstanceData(t *testing.T) {
 	mockEc2 := new(MockEC2Client)
-	testClient := &AWSClient{Client: mockEc2}
+	testClient := &AwsClient{Client: mockEc2}
 
 	dnsName := "ip-10-0-0-1.ec2.internal"
 	expectedOutput := &ec2.DescribeInstancesOutput{
@@ -59,7 +59,7 @@ func TestGetInstanceData(t *testing.T) {
 
 func TestGetInstanceDataWithError(t *testing.T) {
 	mockEc2 := new(MockEC2Client)
-	testClient := &AWSClient{Client: mockEc2}
+	testClient := &AwsClient{Client: mockEc2}
 
 	dnsName := "nonexistent.ec2.internal"
 	mockEc2.On("DescribeInstances", mock.Anything).Return((*ec2.DescribeInstancesOutput)(nil), errors.New("instance not found"))
