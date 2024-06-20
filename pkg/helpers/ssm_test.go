@@ -8,7 +8,7 @@ import (
 var mockExecCommand func(name string, arg ...string) *exec.Cmd
 
 func TestNewSsmClient(t *testing.T) {
-	mockExecCommand = func(name string, arg ...string) *exec.Cmd {
+	mockExecCommand = func(_ string, _ ...string) *exec.Cmd {
 		return &exec.Cmd{}
 	}
 	defer func() { mockExecCommand = nil }()
