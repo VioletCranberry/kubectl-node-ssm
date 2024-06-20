@@ -26,25 +26,24 @@ func NewAwsClient(awsProfile, awsRegion string) (*AwsClient, error) {
 }
 
 func createAwsSession(awsProfile, awsRegion string) (*session.Session, error) {
-	var opts session.Options
-
-	if awsProfile == "" {
-		opts = session.Options{
-			Config: aws.Config{
-				Region: aws.String(awsRegion),
-			},
-			SharedConfigState: session.SharedConfigEnable,
-		}
-	} else {
-		opts = session.Options{
-			Profile: awsProfile,
-			Config: aws.Config{
-				Region: aws.String(awsRegion),
-			},
-		}
+	opts := session.Options{
+		Config: aws.Config{
+			Region:                        aws.String(awsRegion),
+			CredentialsChainVerboseErrors: aws.Bool(true),
+		},
+		SharedConfigState: session.SharedConfigEnable,
 	}
 
-	return session.NewSessionWithOptions(opts)
+	if awsProfile != "" {
+		opts.Profile = awsProfile
+	}
+
+	sess, err := session.NewSessionWithOptions(opts)
+	if err != nil {
+		return nil, fmt.Errorf("error creating AWS session: %w", err)
+	}
+
+	return sess, nil
 }
 
 func (c *AwsClient) GetInstanceData(privateDNSName string) (*ec2.DescribeInstancesOutput, error) {

@@ -12,7 +12,7 @@ func newStartSessionCmd(opts *cliOptions, target *string, params *[]string) *cob
 		Use:   "start-session",
 		Short: "Start AWS systems manager session using local AWS CLI and session-manager-plugin",
 		Long:  "Start AWS systems manager session using local AWS CLI and session-manager-plugin",
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, _ []string) error {
 
 			kubeConfig, err := readKubeConfig(opts)
 			if err != nil {
