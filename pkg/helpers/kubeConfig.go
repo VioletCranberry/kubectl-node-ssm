@@ -2,17 +2,22 @@ package helpers
 
 import (
 	"fmt"
+	"net/url"
 	"regexp"
+	"strings"
 
 	"k8s.io/client-go/rest"
 )
 
+// KubeConfig holds a Kubernetes REST configuration along with AWS context
+// (profile and region) extracted from the kubeconfig.
 type KubeConfig struct {
 	Config     *rest.Config
 	AwsProfile string
 	AwsRegion  string
 }
 
+// NewKubeConfig creates a KubeConfig instance from the given rest.Config.
 func NewKubeConfig(config *rest.Config) (*KubeConfig, error) {
 	profile := extractAwsProfile(config)
 	region, err := extractAwsRegion(config)
@@ -37,10 +42,16 @@ func extractAwsProfile(config *rest.Config) string {
 }
 
 func extractAwsRegion(config *rest.Config) (string, error) {
-	re := regexp.MustCompile(`https?:\/\/[a-zA-Z0-9.-]+\.([a-z]+-(?:gov-|cn-)?[a-z]+-\d+)\.eks\.amazonaws\.com`)
-	matches := re.FindStringSubmatch(config.Host)
-	if len(matches) > 1 {
-		return matches[1], nil
+	regionRe := regexp.MustCompile(`^[a-z]{2}(?:-[a-z]+)+-\d+$`)
+	u, err := url.Parse(config.Host)
+	if err != nil {
+		return "", fmt.Errorf("invalid AWS host URL %q: %w", config.Host, err)
 	}
-	return "", fmt.Errorf("can't parse AWS_REGION from %s", config.Host)
+	host := u.Hostname()
+	for label := range strings.SplitSeq(host, ".") {
+		if regionRe.MatchString(label) {
+			return label, nil
+		}
+	}
+	return "", fmt.Errorf("could not parse AWS region from host %q", host)
 }

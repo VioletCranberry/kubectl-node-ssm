@@ -76,6 +76,12 @@ func TestExtractAwsRegion(t *testing.T) {
 			want:    "",
 			wantErr: true,
 		},
+		{
+			name:    "Valid AWS region in non-eks cluster",
+			host:    "https://api-demo-non-eks.elb.eu-west-1.amazonaws.com?",
+			want:    "eu-west-1",
+			wantErr: false,
+		},
 	}
 
 	for _, tt := range tests {

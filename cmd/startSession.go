@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"regexp"
 
 	"github.com/VioletCranberry/kubectl-node-ssm/pkg/helpers"
 	"github.com/spf13/cobra"
@@ -13,7 +14,6 @@ func newStartSessionCmd(opts *cliOptions, target *string, params *[]string) *cob
 		Short: "Start AWS systems manager session using local AWS CLI and session-manager-plugin",
 		Long:  "Start AWS systems manager session using local AWS CLI and session-manager-plugin",
 		RunE: func(_ *cobra.Command, _ []string) error {
-
 			kubeConfig, err := readKubeConfig(opts)
 			if err != nil {
 				return fmt.Errorf("error reading kubeconfig file: %w", err)
@@ -30,6 +30,12 @@ func newStartSessionCmd(opts *cliOptions, target *string, params *[]string) *cob
 			return nil
 		},
 	}
+	startSessionCmd.Flags().
+		StringVar(target, "target", "", "EKS node name (private-dns-name or instance Id)")
+	_ = startSessionCmd.MarkFlagRequired("target")
+
+	startSessionCmd.Flags().
+		StringSliceVar(params, "session-params", []string{}, "SSM session parameters")
 	return startSessionCmd
 }
 
@@ -46,6 +52,11 @@ func readKubeConfig(opts *cliOptions) (*helpers.KubeConfig, error) {
 }
 
 func resolveTargetToID(awsProfile, awsRegion, target string) (string, error) {
+	// shortcut if they already gave us an instance ID
+	idRe := regexp.MustCompile(`^i-[0-9a-f]+$`)
+	if idRe.MatchString(target) {
+		return target, nil
+	}
 	client, err := helpers.NewAwsClient(awsProfile, awsRegion)
 	if err != nil {
 		return "", fmt.Errorf("error setting up AWS client: %w", err)

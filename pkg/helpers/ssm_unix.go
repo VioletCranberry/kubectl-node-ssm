@@ -10,12 +10,15 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+// SsmClient encapsulates an exec.Cmd used to run the AWS SSM session manager plugin.
 type SsmClient struct {
 	Cmd *exec.Cmd
 }
 
+// NewSsmClient creates and configures an SsmClient for the specified target.
 func NewSsmClient(targetID string, params []string,
-	awsProfile, awsRegion string) (*SsmClient, error) {
+	awsProfile, awsRegion string,
+) (*SsmClient, error) {
 	client := &SsmClient{}
 	cmd, err := client.buildCmd(targetID, params)
 	if err != nil {
@@ -45,6 +48,7 @@ func (c *SsmClient) setEnv(awsProfile, awsRegion string) {
 	c.Cmd.Env = env
 }
 
+// RunCmd executes the SSM command on the client.
 func (c *SsmClient) RunCmd() error {
 	c.Cmd.Stdin = os.Stdin
 	c.Cmd.Stdout = os.Stdout

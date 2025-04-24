@@ -1,4 +1,4 @@
-version: 1
+version: 2
 project_name: kubectl-node_ssm
 dist: ./dist
 
@@ -12,13 +12,15 @@ builds:
     goarch:
       - amd64
       - arm64
-      
+
 archives:
-  - format: tar.gz
+  - formats:
+      - tar.gz
     name_template: "{{ .ProjectName }}-v{{ .Version }}-{{ .Os }}-{{ .Arch }}"
     files:
       - LICENSE
       - README.md
     format_overrides:
       - goos: windows
-        format: zip
+        formats:
+          - zip
