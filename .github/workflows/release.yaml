@@ -8,22 +8,21 @@ on:
     types:
       - published
 jobs:
-
   release:
     name: release binaries
     runs-on: "ubuntu-latest"
     steps:
-
       - uses: actions/checkout@v4
         name: Checkout repository
-      - uses: actions/setup-go@v4
+      - uses: actions/setup-go@v5
         name: Setup go environment
         with:
-          go-version: "1.22"
+          go-version: "1.24"
       - name: Install GoReleaser
-        uses: goreleaser/goreleaser-action@v5
+        uses: goreleaser/goreleaser-action@v6
         with:
           install-only: true
+          version: "~> v2"
 
       - name: Build libraries
         run: |
@@ -37,7 +36,7 @@ jobs:
           release_tag=$(curl -sH "Authorization: token ${{ secrets.GITHUB_TOKEN }}" "$release_url" | jq -r ".tag_name")
           if [[ -z "$release_tag" ]]; then echo "variable release_tag is empty!" && exit 1; fi
           echo "LATEST_RELEASE_TAG=$release_tag" >> $GITHUB_ENV
-      
+
       - name: Upload release assets
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -51,7 +50,6 @@ jobs:
     name: bump krew-index version
     runs-on: "ubuntu-latest"
     steps:
-
       - uses: actions/checkout@v4
         name: Checkout repository
       - uses: rajatjindal/krew-release-bot@v0.0.46

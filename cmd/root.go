@@ -17,20 +17,15 @@ func newCliOptions(streams genericclioptions.IOStreams) *cliOptions {
 	}
 }
 
+// NewRootCmd creates and returns the root Cobra command for the node-ssm CLI.
 func NewRootCmd(streams genericclioptions.IOStreams) *cobra.Command {
 	var target string
 	var params []string
 	cliOptions := newCliOptions(streams)
 
 	rootCmd := &cobra.Command{Use: "node-ssm", SilenceUsage: true}
-	rootCmd.PersistentFlags().StringVar(&target, "target", "", "EKS node name (private-dns-name)")
-	_ = rootCmd.MarkPersistentFlagRequired("target")
-
-	rootCmd.PersistentFlags().StringSliceVar(&params, "session-params",
-		[]string{}, "SSM session parameters")
 
 	cliOptions.flags.AddFlags(rootCmd.Flags())
 	rootCmd.AddCommand(newStartSessionCmd(cliOptions, &target, &params))
-
 	return rootCmd
 }

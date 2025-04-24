@@ -1,3 +1,6 @@
+// Package main implements the kubectl-node-ssm plugin entrypoint.
+// It ensures the binary is invoked as a kubectl plugin, sets up
+// standard IO streams, and executes the root CLI command.
 package main
 
 import (
