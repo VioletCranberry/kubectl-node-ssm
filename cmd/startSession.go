@@ -30,10 +30,16 @@ func newStartSessionCmd(opts *cliOptions, target *string, params *[]string) *cob
 			return nil
 		},
 	}
+
+	// Explicitly re-use the same IOStreams on this sub-command.
+	startSessionCmd.SetIn(opts.In)
+	startSessionCmd.SetOut(opts.Out)
+	startSessionCmd.SetErr(opts.ErrOut)
+
+	// Define flags.
 	startSessionCmd.Flags().
 		StringVar(target, "target", "", "EKS node name (private-dns-name or instance Id)")
 	_ = startSessionCmd.MarkFlagRequired("target")
-
 	startSessionCmd.Flags().
 		StringSliceVar(params, "session-params", []string{}, "SSM session parameters")
 	return startSessionCmd

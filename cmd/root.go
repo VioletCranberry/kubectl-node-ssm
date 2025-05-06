@@ -21,11 +21,21 @@ func newCliOptions(streams genericclioptions.IOStreams) *cliOptions {
 func NewRootCmd(streams genericclioptions.IOStreams) *cobra.Command {
 	var target string
 	var params []string
-	cliOptions := newCliOptions(streams)
+	cliOpts := newCliOptions(streams)
 
-	rootCmd := &cobra.Command{Use: "node-ssm", SilenceUsage: true}
+	rootCmd := &cobra.Command{
+		Use:          "node-ssm",
+		SilenceUsage: true,
+	}
 
-	cliOptions.flags.AddFlags(rootCmd.Flags())
-	rootCmd.AddCommand(newStartSessionCmd(cliOptions, &target, &params))
+	// Make all ConfigFlags (--kubeconfig, --context, etc.) persistent.
+	cliOpts.flags.AddFlags(rootCmd.PersistentFlags())
+
+	// Wire up the IOStreams on the root command.
+	rootCmd.SetIn(cliOpts.In)
+	rootCmd.SetOut(cliOpts.Out)
+	rootCmd.SetErr(cliOpts.ErrOut)
+
+	rootCmd.AddCommand(newStartSessionCmd(cliOpts, &target, &params))
 	return rootCmd
 }
